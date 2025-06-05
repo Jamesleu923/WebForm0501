@@ -61,7 +61,7 @@
             <asp:FileUpload ID="FileUpload1" runat="server" CssClass="form-control"></asp:FileUpload>
         </div>
         <div class="mb-3">
-            <asp:Image ID="Image1" runat="server" CssClass="image-preview" Height="251px" Width="231px" />
+            <asp:Image ID="Image1" runat="server" CssClass="image-preview" Height="233px" Width="193px" />
         </div>
 
         <!-- 移除原有按鈕 OnClick，改用純 HTML 或其他方式觸發 -->

@@ -100,34 +100,40 @@ public class SQL_Handle
           {
            cn.Open();
            System.Data.SqlClient.SqlDataReader reader = cmd.ExecuteReader();
+            // 103-134列if ,新的寫法,支援vs 2022+sql server 2022
            if (reader.Read() && reader.HasRows)
+            {
+                try
                 {
-                  try{
-                        this.mypage.Response.AppendHeader("content-disposition", "attachment; filename="
-               + System.Web.HttpUtility.UrlEncode(fname, System.Text.Encoding.UTF8));
-                        this.mypage.Response.ContentType = GetImageType(ImageType);
-                        //GetBytes (int ordinal, long dataIndex, byte[] buffer, int bufferIndex, int length)
-                        // ordinal   Int32 以零為基底的資料行序數。
-                        long len = reader.GetBytes(0, 0, null, 0, 0);
-                        Byte[] buffer = new Byte[len];
-                        //資料放入buffer中
-                        reader.GetBytes(1, 0, buffer, 0, (int)len);
-                        //buffer寫入檔案
-                        this.mypage.Response.BinaryWrite(buffer);
-                        this.mypage.Response.Flush();
-                        this.mypage.Response.End();
-                        return_val = true;
+                    this.mypage.Response.Clear();
+                    this.mypage.Response.Buffer = true;
+                    this.mypage.Response.Charset = "utf-8";
+                    this.mypage.Response.ContentEncoding = System.Text.Encoding.UTF8;
+                    this.mypage.Response.AppendHeader("content-disposition", "attachment; filename="
+                        + System.Web.HttpUtility.UrlEncode(fname, System.Text.Encoding.UTF8));
+                    this.mypage.Response.ContentType = GetImageType(ImageType);
 
-                    }
-                    catch (WebException ex)
-                    {
-                        return_val = false;
-                        errstr = ex.Message.ToString();
-                        sysmsg.ShowMsg(mypage, "讀圖錯誤,錯誤代碼:" + this.errstr.ToString());
-                    }
-                    reader.Close();
+                    long len = reader.GetBytes(0, 0, null, 0, 0);
+                    Byte[] buffer = new Byte[len];
+                    reader.GetBytes(0, 0, buffer, 0, (int)len); // 修正欄位索引
+                    this.mypage.Response.BinaryWrite(buffer);
+                    this.mypage.Response.Flush();
+
+                    // 不建議使用 Response.End()
+                    // this.mypage.Response.End();
+                    HttpContext.Current.ApplicationInstance.CompleteRequest();
+
+                    return_val = true;
                 }
-                cn.Close();
+                catch (WebException ex)
+                {
+                    return_val = false;
+                    errstr = ex.Message.ToString();
+                    sysmsg.ShowMsg(mypage, "讀圖錯誤,錯誤代碼:" + this.errstr.ToString());
+                }
+            }
+
+            cn.Close();
 
             }
             catch (System.Data.SqlClient.SqlException ex)
@@ -245,3 +251,32 @@ public class SQL_Handle
 
     }
 }
+/* backup 舊式寫法..vs2017+sql server 2019可用.
+           if (reader.Read() && reader.HasRows)
+                {
+                  try{
+                        this.mypage.Response.AppendHeader("content-disposition", "attachment; filename="
+               + System.Web.HttpUtility.UrlEncode(fname, System.Text.Encoding.UTF8));
+                        this.mypage.Response.ContentType = GetImageType(ImageType);
+                        //GetBytes (int ordinal, long dataIndex, byte[] buffer, int bufferIndex, int length)
+                        // ordinal   Int32 以零為基底的資料行序數。
+                        long len = reader.GetBytes(0, 0, null, 0, 0);
+                        Byte[] buffer = new Byte[len];
+                        //資料放入buffer中
+                        reader.GetBytes(1, 0, buffer, 0, (int)len);
+                        //buffer寫入檔案
+                        this.mypage.Response.BinaryWrite(buffer);
+                        this.mypage.Response.Flush();
+                        this.mypage.Response.End();
+                        return_val = true;
+
+                    }
+                    catch (WebException ex)
+                    {
+                        return_val = false;
+                        errstr = ex.Message.ToString();
+                        sysmsg.ShowMsg(mypage, "讀圖錯誤,錯誤代碼:" + this.errstr.ToString());
+                    }
+                    reader.Close();
+                }
+*/
